@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 public class UsersController {
     @Autowired
@@ -26,5 +28,30 @@ public class UsersController {
     @RequestMapping("/findId")
     public User findId(@RequestParam Long userId){
         return usersService.findUserById(userId);
+    }
+
+    @RequestMapping("/findName")
+    public User findId(@RequestParam String userName){
+        return usersService.findUserByUserName(userName);
+    }
+
+    @RequestMapping("/users")
+    public List<User> getAllUsers() {
+        return  usersService.getAllUsers();
+    }
+
+    @RequestMapping("/isEmpty")
+    public boolean isEmpty() {
+        return usersService.isRolesDBEmpty();
+    }
+
+    @RequestMapping("/prepareRolesDB")
+    public void doPrepareRoles() {
+        usersService.prepareRolesDB();
+    }
+
+    @RequestMapping("/prepareUserDB")
+    public void doPrepareUsers() {
+        usersService.prepareUserDB();
     }
 }
