@@ -1,7 +1,6 @@
 package com.app.service.rest.usersServer.userservice;
 
 import com.app.service.rest.usersServer.model.User;
-
 import java.util.List;
 
 public interface UsersService {
@@ -20,4 +19,6 @@ public interface UsersService {
     void prepareRolesDB();
 
     void prepareUserDB();
+
+
 }
