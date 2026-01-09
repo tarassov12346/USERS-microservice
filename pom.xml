@@ -11,7 +11,7 @@
 
 
     <properties>
-        <start-class>com.app.service.rest.usersServer.USERSServer</start-class>
+        <start-class>com.app.service.rest.usersServer.UsersServer</start-class>
     </properties>
 
     <parent>
