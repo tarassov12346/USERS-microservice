@@ -66,6 +66,18 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- 1. Включает поддержку кэширования в Spring -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- 2. Сама библиотека Caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
 
 
     </dependencies>

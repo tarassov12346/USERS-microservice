@@ -6,6 +6,9 @@ import com.app.service.rest.usersServer.model.User;
 import com.app.service.rest.usersServer.repository.RoleRepository;
 import com.app.service.rest.usersServer.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,23 +19,24 @@ import java.util.stream.Collectors;
 
 @Service
 public class UsersServiceImpl implements UsersService{
-
     @Autowired
     UserRepository userRepository;
-
     @Autowired
     RoleRepository roleRepository;
-
     @Autowired
     PasswordEncoder bCryptPasswordEncoder;
 
-
     @Override
+    @Cacheable(value = "users_list", key = "'allUsers'")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "users_list", allEntries = true),
+            @CacheEvict(value = "user_details", key = "#userId")
+    })
     public boolean deleteUser(Long userId) {
         if (userRepository.findById(userId).isPresent()) {
             userRepository.findById(userId).get().getRoles().clear();
@@ -43,16 +47,19 @@ public class UsersServiceImpl implements UsersService{
     }
 
     @Override
+    @Cacheable(value = "user_details", key = "#userId")
     public User findUserById(Long userId) {
         return userRepository.findById(userId).get();
     }
 
     @Override
+    @Cacheable(value = "user_details", key = "#userName")
     public User findUserByUserName(String userName) {
         return userRepository.findByUsername(userName);
     }
 
     @Override
+    @CacheEvict(value = "users_list", allEntries = true)
     public boolean saveUser(User user) {
         User userFromDB = userRepository.findByUsername(user.getUsername());
         if (userFromDB != null) {
@@ -92,6 +99,4 @@ public class UsersServiceImpl implements UsersService{
         userAdmin.setPassword(bCryptPasswordEncoder.encode(userAdmin.getPassword()));
         userRepository.save(userAdmin);
     }
-
-
 }
