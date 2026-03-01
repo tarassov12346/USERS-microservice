@@ -3,8 +3,7 @@ package com.app.service.rest.usersServer.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import javax.persistence.*;
+import jakarta.persistence.*; // ИМПОРТ ИЗМЕНЕН
 import java.util.Set;
 
 @Entity
@@ -13,55 +12,16 @@ import java.util.Set;
 @NoArgsConstructor
 @Table(name = "t_user")
 public class User {
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setPasswordConfirm(String passwordConfirm) {
-        this.passwordConfirm = passwordConfirm;
-    }
-
-    public void setRoles(Set<Roles> roles) {
-        this.roles = roles;
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", unique = true, nullable = false, insertable = false, updatable = false)
+    @Column(name = "id", unique = true, nullable = false)
     private Long id;
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getPasswordConfirm() {
-        return passwordConfirm;
-    }
-
-    public Set<Roles> getRoles() {
-        return roles;
-    }
 
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String password;
 
     @Transient

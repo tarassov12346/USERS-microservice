@@ -1,10 +1,10 @@
 package com.app.service.rest.usersServer.userserviceImpl;
 
-import com.app.service.rest.usersServer.userservice.UsersService;
 import com.app.service.rest.usersServer.model.Roles;
 import com.app.service.rest.usersServer.model.User;
 import com.app.service.rest.usersServer.repository.RoleRepository;
 import com.app.service.rest.usersServer.repository.UserRepository;
+import com.app.service.rest.usersServer.userservice.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class UsersServiceImpl implements UsersService{
