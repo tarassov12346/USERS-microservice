@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Tetris</title>
+    <style>
+        /* Стили выдержаны в твоем стиле регистрации */
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: rgb(100, 100, 100);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        #login-container {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h2 { margin-bottom: 30px; letter-spacing: 3px; color: #419152; }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 16px; margin-bottom: 5px; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 18px;
+            box-sizing: border-box;
+            background: #eee;
+        }
+
+        input:focus { outline: 3px solid #419152; background: #fff; }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+            background-color: #419152;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #444;
+            margin-top: 15px;
+        }
+
+        .btn-login:hover { filter: brightness(1.2); transform: translateY(-2px); }
+
+        #error-msg { color: #ff6b6b; margin-bottom: 15px; display: none; font-weight: bold; }
+
+        .loader {
+            display: none;
+            margin: 10px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #419152;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+</head>
+<body>
+
+<div id="login-container">
+    <h2>TETRIS LOGIN</h2>
+
+    <div id="error-msg">Invalid username or password</div>
+
+    <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Your name...">
+    </div>
+
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="******">
+    </div>
+
+    <div class="loader" id="loader"></div>
+    <button id="loginBtn" class="btn-login">ENTER GAME</button>
+
+    <button class="btn-login btn-secondary" onclick="window.location.href='/registration'">CREATE ACCOUNT</button>
+</div>
+
+<script>
+    $(function () {
+        $("#loginBtn").click(function() {
+            const loginData = {
+                username: $("#username").val(),
+                password: $("#password").val()
+            };
+
+            $("#error-msg").hide();
+            $("#loader").show();
+            $("#loginBtn").prop("disabled", true);
+
+            $.ajax({
+                url: '/api/users/login', // Эндпоинт в микросервисе Users
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(loginData),
+                success: function (response) {
+                    // response должен содержать { "token": "...", "userId": "..." }
+
+                    // 1. Сохраняем JWT в localStorage
+                    localStorage.setItem('jwt_token', response.token);
+                    localStorage.setItem('user_id', response.userId);
+
+                    // 2. Переходим на Гейтвей, который прокинет нас на Тетрис
+                    // Здесь указываем URL Тетриса через Gateway
+                    window.location.href = "/html/hello.html";
+                },
+                error: function (xhr) {
+                    $("#loader").hide();
+                    $("#loginBtn").prop("disabled", false);
+                    $("#error-msg").text(xhr.responseText || "Login failed").fadeIn();
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

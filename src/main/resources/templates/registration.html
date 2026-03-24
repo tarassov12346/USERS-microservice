@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration - Tetris</title>
+    <style>
+        /* Стили оставляем твои, они отличные */
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: rgb(100, 100, 100);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        #registration {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 450px;
+            width: 100%;
+        }
+        h2 { margin-bottom: 30px; letter-spacing: 2px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 16px; margin-bottom: 5px; }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 18px;
+            box-sizing: border-box;
+        }
+        input:focus { outline: 3px solid #419152; }
+        .btn-reg {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        #registerButton { background-color: #419152; color: white; }
+        #logInButton { background-color: #333; color: white; margin-top: 15px; }
+        .btn-reg:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        img.displayed { margin-top: 30px; border: 2px solid #000; max-width: 180px; height: auto; }
+        .error-msg { color: #ff6b6b; margin-bottom: 15px; display: none; }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+</head>
+<body>
+
+<div id="registration">
+    <h2>REGISTRATION</h2>
+
+    <div id="errorMessage" class="error-msg"></div>
+
+    <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" name="username" placeholder="Enter name..." required>
+    </div>
+
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" name="password" placeholder="******" required>
+    </div>
+
+    <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="passwordConfirm" name="passwordConfirm" placeholder="******" required>
+    </div>
+
+    <button id="registerButton" class="btn-reg">CREATE ACCOUNT</button>
+    <!-- Кнопка логина теперь просто ведет на страницу логина -->
+    <button id="logInButton" class="btn-reg" onclick="window.location.href='/login'">GO TO LOGIN</button>
+
+    <img class="displayed" src="/img/black.png" alt="Tetris Logo">
+</div>
+
+<audio id="registered_sound" src="/sounds/registered.mp3" preload="auto"></audio>
+
+<script>
+    $(function () {
+        $("#registerButton").click(function() {
+            const userData = {
+                username: $("#username").val(),
+                password: $("#password").val(),
+                passwordConfirm: $("#passwordConfirm").val()
+            };
+
+            // Простая валидация на фронте
+            if (userData.password !== userData.passwordConfirm) {
+                showError("Passwords do not match!");
+                return;
+            }
+
+            $.ajax({
+                url: '/api/users/register',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(userData),
+                success: function (response) {
+                    document.getElementById('registered_sound').play();
+                    alert("Registration successful! Now please log in.");
+                    window.location.href = "/login";
+                },
+                error: function (xhr) {
+                    showError(xhr.responseText || "Registration failed");
+                }
+            });
+        });
+    });
+
+    function showError(text) {
+        $("#errorMessage").text(text).fadeIn();
+    }
+</script>
+
+</body>
+</html>
