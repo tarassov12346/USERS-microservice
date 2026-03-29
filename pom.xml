@@ -55,6 +55,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.30</version> <!-- ДОБАВЬ ЭТУ СТРОКУ -->
             <optional>true</optional>
         </dependency>
         <dependency>
