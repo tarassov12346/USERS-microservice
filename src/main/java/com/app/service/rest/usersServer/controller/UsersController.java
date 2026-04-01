@@ -1,8 +1,10 @@
 package com.app.service.rest.usersServer.controller;
 
 import com.app.service.rest.usersServer.configuration.JwtUtils;
+import com.app.service.rest.usersServer.dto.RegisterRequest;
 import com.app.service.rest.usersServer.model.User;
 import com.app.service.rest.usersServer.userservice.UsersService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -38,26 +40,25 @@ public class UsersController {
     // --- API ЭНДПОИНТЫ ---
 
     @PostMapping("/api/users/register")
-    @ResponseBody
-    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-        String confirm = request.get("passwordConfirm");
-
-        if (!password.equals(confirm)) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        // 1. Проверка совпадения паролей (Java 21 Record syntax)
+        if (!request.password().equals(request.passwordConfirm())) {
             return ResponseEntity.badRequest().body("Passwords do not match");
         }
 
+        // 2. Создаем сущность (или используем конструктор в User)
         User newUser = new User();
-        newUser.setUsername(username); // Проверь, как в модели: setUserName или setUsername
-        newUser.setPassword(password); // Передаем СЫРОЙ пароль, сервис сам его зашифрует
+        newUser.setUsername(request.username());
+        newUser.setPassword(request.password()); // Внутри usersService.saveUser должен быть BCrypt!
 
-        // Вызываем твой существующий метод saveUser
+        // 3. Сохранение
         boolean saved = usersService.saveUser(newUser);
 
-        return saved ? ResponseEntity.ok("User registered") :
-                ResponseEntity.badRequest().body("User already exists");
+        return saved
+                ? ResponseEntity.ok("User registered successfully")
+                : ResponseEntity.badRequest().body("User already exists or save failed");
     }
+
 
     @PostMapping("/api/users/login")
     @ResponseBody
