@@ -5,60 +5,46 @@ import com.app.service.rest.usersServer.dto.RegisterRequest;
 import com.app.service.rest.usersServer.model.User;
 import com.app.service.rest.usersServer.userservice.UsersService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.List;
 import java.util.Map;
 
 @Controller// Поменял на @Controller, чтобы работали переходы на HTML страницы
+@RequiredArgsConstructor // Генерирует конструктор для всех final-полей
 public class UsersController {
-    @Autowired
-    UsersService usersService;
-
-    @Autowired
-    private JwtUtils jwtUtils;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    // 1. Все зависимости делаем private final
+    // 2. Убираем @Autowired с полей — конструктор сделает всё сам
+    private final UsersService usersService;
+    private final JwtUtils jwtUtils;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     // --- СТРАНИЦЫ (UI) ---
-
     @GetMapping("/login")
     public String loginPage() {
-        return "login"; // ищет login.html в templates
+        return "login";
     }
 
     @GetMapping("/registration")
     public String registrationPage() {
-        return "registration"; // ищет registration.html в templates
+        return "registration";
     }
-
-    // --- API ЭНДПОИНТЫ ---
 
     @PostMapping("/api/users/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        // 1. Проверка совпадения паролей (Java 21 Record syntax)
         if (!request.password().equals(request.passwordConfirm())) {
             return ResponseEntity.badRequest().body("Passwords do not match");
         }
-
-        // 2. Создаем сущность (или используем конструктор в User)
-        User newUser = new User();
-        newUser.setUsername(request.username());
-        newUser.setPassword(request.password()); // Внутри usersService.saveUser должен быть BCrypt!
-
-        // 3. Сохранение
+        User newUser = User.of(request.username(), request.password());
         boolean saved = usersService.saveUser(newUser);
-
-        return saved
-                ? ResponseEntity.ok("User registered successfully")
-                : ResponseEntity.badRequest().body("User already exists or save failed");
+        return saved ? ResponseEntity.ok("Success") : ResponseEntity.badRequest().body("Fail");
     }
-
 
     @PostMapping("/api/users/login")
     @ResponseBody
@@ -68,66 +54,10 @@ public class UsersController {
 
         User user = usersService.findUserByUserName(username);
 
-        // bCryptPasswordEncoder.matches сравнит сырой пароль из запроса и хэш из БД
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
             String token = jwtUtils.generateToken(user.getUsername(), user.getId());
-
-            return ResponseEntity.ok(Map.of(
-                    "token", token,
-                    "userId", user.getId()
-            ));
+            return ResponseEntity.ok(Map.of("token", token, "userId", user.getId()));
         }
-
         return ResponseEntity.status(401).body("Invalid username or password");
     }
-
-
-    @RequestMapping("/save")
-    @ResponseBody
-    public boolean save(@RequestBody User newUser) {
-        return usersService.saveUser(newUser);
-    }
-
-    @RequestMapping("/delete")
-    @ResponseBody
-    public void doDelete(@RequestParam Long userId) {
-        usersService.deleteUser(userId);
-    }
-
-    @RequestMapping("/findId")
-    @ResponseBody
-    public User findId(@RequestParam Long userId){
-        return usersService.findUserById(userId);
-    }
-
-    @RequestMapping("/findName")
-    @ResponseBody
-    public User findId(@RequestParam String userName){
-        return usersService.findUserByUserName(userName);
-    }
-
-    @RequestMapping("/users")
-    @ResponseBody
-    public List<User> getAllUsers() {
-        return  usersService.getAllUsers();
-    }
-
-    @RequestMapping("/isEmpty")
-    @ResponseBody
-    public boolean isEmpty() {
-        return usersService.isRolesDBEmpty();
-    }
-
-    @RequestMapping("/prepareRolesDB")
-    @ResponseBody
-    public void doPrepareRoles() {
-        usersService.prepareRolesDB();
-    }
-
-    @RequestMapping("/prepareUserDB")
-    @ResponseBody
-    public void doPrepareUsers() {
-        usersService.prepareUserDB();
-    }
-
 }

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+package com.app.grpc;
+
+message RoleMsg {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UserMsg {
+  int64 id = 1;
+  string username = 2;
+  string password = 3;
+  string passwordConfirm = 4;
+  repeated RoleMsg roles = 5;
+}
+
+message UserResponse {
+  bool exists = 1;
+  UserMsg user = 2;
+}
+
+message UserListResponse {
+  repeated UserMsg users = 1;
+}
+
+message ActionResponse {
+  bool success = 1;
+}
+
+message SearchRequest { string value = 1; }
+message IdRequest { int64 id = 1; }
+message UserEmpty {}
+
+
+service UserService {
+  rpc FindByUsername(SearchRequest) returns (UserResponse);
+  rpc FindById(IdRequest) returns (UserResponse);
+  rpc GetAllUsers(UserEmpty) returns (UserListResponse);
+  rpc SaveUser(UserMsg) returns (ActionResponse);
+  rpc DeleteUser(IdRequest) returns (ActionResponse);
+  rpc IsRolesEmpty(UserEmpty) returns (ActionResponse);
+  rpc PrepareRolesDB(UserEmpty) returns (ActionResponse);
+  rpc PrepareUserDB(UserEmpty) returns (ActionResponse);
+
+}
