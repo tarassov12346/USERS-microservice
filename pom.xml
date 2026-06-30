@@ -8,18 +8,18 @@
     <artifactId>USERS-microservice</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>USERS-microservice</name>
-    <description>Microservice project for Spring Boot 3.1.1</description>
+    <description>Microservice project for Spring Boot 3.4.2</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.2</version> <!-- Было 3.1.1 -->
+        <version>3.4.2</version>
         <relativePath/>
     </parent>
 
     <properties>
-        <java.version>21</java.version> <!-- Было 17 -->
-        <spring-cloud.version>2024.0.0</spring-cloud.version> <!-- Соответствует Boot 3.4 -->
+        <java.version>21</java.version>
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
     </properties>
 
     <dependencies>
@@ -55,8 +55,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version> <!-- ДОБАВЬ ЭТУ СТРОКУ -->
-            <optional>true</optional>
+            <version>1.18.34</version> <!-- Обновили под Java 21 -->
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -67,6 +67,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
         <!-- Библиотека для работы с JWT (jjwt) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -89,6 +90,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
         <!-- gRPC Server -->
         <dependency>
             <groupId>net.devh</groupId>
@@ -96,11 +98,10 @@
             <version>3.1.0.RELEASE</version>
         </dependency>
 
-        <!-- Поддержка аннотаций для генерируемого кода -->
+        <!-- СОВРЕМЕННАЯ ПОДДЕРЖКА АННОТАЦИЙ ДЛЯ JAKARTA / SPRING BOOT 3 -->
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
 
         <!-- Теневой Netty для исключения конфликтов -->
@@ -109,9 +110,8 @@
             <artifactId>grpc-netty-shaded</artifactId>
             <version>1.62.2</version>
         </dependency>
-
-
     </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -123,6 +123,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <build>
         <extensions>
             <extension>
@@ -148,6 +149,31 @@
                             <goal>compile</goal>
                             <goal>compile-custom</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ПЛАГИН ДЛЯ АВТОМАТИЧЕСКОЙ ЗАМЕНЫ JAVAX НА JAKARTA В СГЕНЕРИРОВАННОМ КОДЕ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>replace-javax-with-jakarta</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <replace token="@javax.annotation.Generated"
+                                         value="@jakarta.annotation.Generated"
+                                         dir="${project.build.directory}/generated-sources/protobuf">
+                                    <include name="**/*.java"/>
+                                </replace>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

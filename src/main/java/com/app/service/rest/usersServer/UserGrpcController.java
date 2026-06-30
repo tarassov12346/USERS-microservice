@@ -22,7 +22,8 @@ public class UserGrpcController extends UserServiceGrpc.UserServiceImplBase{
     @Override
     public void findByUsername(SearchRequest request, StreamObserver<UserResponse> responseObserver) {
         log.info("📡 gRPC: Поиск пользователя {}", request.getValue());
-        User user = userRepository.findByUsername(request.getValue()); // Тут просто User
+        User user = userRepository.findByUsernameWithRoles(request.getValue());
+
 
         UserResponse.Builder builder = UserResponse.newBuilder();
 
@@ -53,9 +54,11 @@ public class UserGrpcController extends UserServiceGrpc.UserServiceImplBase{
     @Override
     public void getAllUsers(UserEmpty request, StreamObserver<UserListResponse> responseObserver) {
         log.info("📡 gRPC: Запрос всех пользователей");
-        List<UserMsg> users = userRepository.findAll().stream()
+        List<UserMsg> users = userRepository.findAllWithRoles().stream()
                 .map(this::mapToMsg)
                 .toList();
+
+
 
         responseObserver.onNext(UserListResponse.newBuilder().addAllUsers(users).build());
         responseObserver.onCompleted();
