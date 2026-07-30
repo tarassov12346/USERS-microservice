@@ -7,13 +7,22 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        try {
+            // Явно задаем неблокирующий криптографический провайдер
+            SecureRandom nonBlockingRandom = SecureRandom.getInstance("SHA1PRNG");
+            return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2Y, 10, nonBlockingRandom);
+        } catch (NoSuchAlgorithmException e) {
+            return new BCryptPasswordEncoder();
+        }
     }
 
     @Bean

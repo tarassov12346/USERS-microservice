@@ -9,8 +9,6 @@ public interface UsersService {
 
     boolean deleteUser(Long userId);
 
-    User findUserById(Long userId);
-
     User findUserByUserName(String userName);
 
     boolean saveUser(User user);
@@ -25,4 +23,6 @@ public interface UsersService {
     List<UserMsg> getAllUsersProtobuf();
 
     UserMsg findUserByUserNameProtobuf(String userName);
+
+    UserMsg findUserByIdProtobuf(Long userId);
 }

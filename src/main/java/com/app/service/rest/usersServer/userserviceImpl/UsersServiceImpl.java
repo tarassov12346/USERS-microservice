@@ -7,12 +7,10 @@ import com.app.service.rest.usersServer.model.User;
 import com.app.service.rest.usersServer.repository.RoleRepository;
 import com.app.service.rest.usersServer.repository.UserRepository;
 import com.app.service.rest.usersServer.userservice.UsersService;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,90 +22,138 @@ import java.util.List;
 @RequiredArgsConstructor // Автоматически генерирует конструктор для всех private final полей
 public class UsersServiceImpl implements UsersService {
 
-    // Внедряем зависимости через конструктор (private final) — канон для продакшена
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder bCryptPasswordEncoder;
 
-    @Override
-    @Cacheable(value = "users_list", key = "'allUsers'", sync = true)
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    // Внедряем менеджер кэшей Caffeine напрямую
+    private final org.springframework.cache.CacheManager cacheManager;
+
+    // Нативные, потокобезопасные и дружелюбные к Loom кэши Caffeine
+    private com.github.benmanes.caffeine.cache.Cache<String, Object> usersListCache;
+    private com.github.benmanes.caffeine.cache.Cache<String, Object> userDetailsCache;
+
+    @PostConstruct
+    @SuppressWarnings("unchecked")
+    public void initCaffeineCaches() {
+        // Извлекаем чистые нативные кэши Caffeine, минуя блокирующие прокси Spring
+        this.usersListCache = (com.github.benmanes.caffeine.cache.Cache<String, Object>)
+                cacheManager.getCache("users_list").getNativeCache();
+        this.userDetailsCache = (com.github.benmanes.caffeine.cache.Cache<String, Object>)
+                cacheManager.getCache("user_details").getNativeCache();
+        log.info("🚀 Lock-Free Caffeine кэши успешно интегрированы в обход ConcurrentHashMap.compute()");
     }
 
-    // --- НАШИ НОВЫЕ СВЕРХБЫСТРЫЕ МЕТОДЫ КЭШИРОВАНИЯ PROTOPUF DTO ДЛЯ gRPC ---
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<User> getAllUsers() {
+        return (List<User>) usersListCache.get("allUsers", key -> userRepository.findAll());
+    }
 
     @Override
-    @Cacheable(value = "users_list", key = "'all_proto'", sync = true)
+    @SuppressWarnings("unchecked")
     public List<UserMsg> getAllUsersProtobuf() {
+        // 1. Быстрое чтение из RAM (Lock-Free)
+        List<UserMsg> cached = (List<UserMsg>) usersListCache.getIfPresent("all_proto");
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. Сетевой I/O выполняется СВОБОДНО, вне замков мапы кэша
         log.info("💾 КЭШ МИСНУЛ (all_proto): Идем в PostgreSQL через JOIN FETCH");
-        return userRepository.findAllWithRoles().stream()
+        List<UserMsg> dbResult = userRepository.findAllWithRoles().stream()
                 .map(this::mapToMsg)
                 .toList();
-    }
 
-    @Override
-    @Cacheable(value = "user_details", key = "#userName + '_proto'", sync = true)
-    public UserMsg findUserByUserNameProtobuf(String userName) {
-        log.info("💾 КЭШ МИСНУЛ (user_proto): Идем в PostgreSQL за пользователем: {}", userName);
-        User user = userRepository.findByUsernameWithRoles(userName);
-        return user != null ? mapToMsg(user) : null;
-    }
-
-    // ----------------------------------------------------------------------
-
-    @Override
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "users_list", allEntries = true, beforeInvocation = true),
-            @CacheEvict(value = "user_details", allEntries = true, beforeInvocation = true) // Сбрасываем всё, чтобы не ловить рассинхрон ID/Имя
-    })
-    public boolean deleteUser(Long userId) {
-        var userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            user.getRoles().clear(); // Безопасно чистим связи ManyToMany
-            userRepository.delete(user);
-            return true;
+        // 3. Атомарная запись через CAS-операции (Lock-Free)
+        if (!dbResult.isEmpty()) {
+            usersListCache.put("all_proto", dbResult);
         }
-        return false;
+        return dbResult;
     }
 
     @Override
-    @Cacheable(value = "user_details", key = "#userId", sync = true)
-    public User findUserById(Long userId) {
-        // Безопасное извлечение без риска выбросить NoSuchElementException
-        return userRepository.findById(userId).orElse(null);
-    }
-
-    @Override
-    @Cacheable(value = "user_details", key = "#userName", sync = true)
     public User findUserByUserName(String userName) {
+        // 1. Быстрое чтение из RAM (Lock-Free)
+        User user = (User) userDetailsCache.getIfPresent(userName);
+        if (user != null) {
+            return user;
+        }
+
+        // 2. Сетевой I/O выполняется СВОБОДНО, вне замков мапы кэша
         log.info("💾 КЭШ МИСНУЛ (user_login): Идем в PostgreSQL через JOIN FETCH за {}", userName);
-        // ЗАМЕНЯЕМ findByUsername на findByUsernameWithRoles!
-        return userRepository.findByUsernameWithRoles(userName);
+        user = userRepository.findByUsernameWithRoles(userName);
+
+        // 3. Атомарная запись через CAS-операции (Lock-Free)
+        if (user != null) {
+            userDetailsCache.put(userName, user);
+        }
+        return user;
+    }
+
+    @Override
+    public UserMsg findUserByUserNameProtobuf(String userName) {
+        return (UserMsg) userDetailsCache.get(userName + "_proto", key -> {
+            log.info("💾 КЭШ МИСНУЛ (user_proto): Идем в PostgreSQL за пользователем: {}", userName);
+            User user = userRepository.findByUsernameWithRoles(userName);
+            return user != null ? mapToMsg(user) : null;
+        });
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteUser(Long userId) {
+        // 1. Атомарно чистим Lock-Free кэш Caffeine
+        usersListCache.invalidateAll();
+        userDetailsCache.invalidateAll();
+
+        // 2. Сразу бьем нативным SQL. Метод executeUpdate вернет количество удаленных строк
+        userRepository.deleteRolesByUserId(userId);
+        int deletedRows = userRepository.deleteUserByIdNative(userId);
+
+        return deletedRows > 0;
+    }
+
+    @Override
+    public UserMsg findUserByIdProtobuf(Long userId) {
+        // 1. Быстрое Lock-Free чтение по уникальному текстовому ключу ID
+        UserMsg cached = (UserMsg) userDetailsCache.getIfPresent(userId + "_id_proto");
+        if (cached != null) {
+            return cached;
+        }
+
+        log.info("💾 КЭШ МИСНУЛ (user_id_proto): Идем в PostgreSQL за ID: {}", userId);
+        // 2. Ищем в БД по ID с загрузкой ролей (кастомный метод репозитория или findById)
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return null;
+        }
+
+        // 3. Мапим в Protobuf и атомарно сохраняем в кэш
+        UserMsg msg = mapToMsg(user);
+        userDetailsCache.put(userId + "_id_proto", msg);
+        return msg;
     }
 
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "users_list", allEntries = true, beforeInvocation = true),
-            @CacheEvict(value = "user_details", key = "#user.username", beforeInvocation = true),
-            @CacheEvict(value = "user_details", key = "#user.username + '_proto'", beforeInvocation = true)
-    })
     public boolean saveUser(User user) {
         User userFromDB = userRepository.findByUsername(user.getUsername());
         if (userFromDB != null) {
             return false;
         }
 
-        // Безопасно вытаскиваем роль по умолчанию
+        // Точечная атомарная инвалидация кэша Caffeine без ConcurrentHashMap.clear()
+        usersListCache.invalidateAll();
+        userDetailsCache.invalidate(user.getUsername());
+        userDetailsCache.invalidate(user.getUsername() + "_proto");
+
         roleRepository.findById(2L).ifPresent(role ->
                 user.setRoles(Collections.singleton(role))
         );
 
-        // Хешируем пароль (работает одинаково и для gRPC, и для Thymeleaf)
+        // Сценарий 1 побежден: шифрование BCrypt использует неблокирующий SecureRandom
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         userRepository.save(user);
         return true;
@@ -143,20 +189,14 @@ public class UsersServiceImpl implements UsersService {
         userAdmin.setPassword("sam");
         userAdmin.setPasswordConfirm("sam");
 
-        // 1. Сначала привязываем роль по умолчанию из базы данных
         roleRepository.findById(1L).ifPresent(role ->
                 userAdmin.setRoles(Collections.singleton(role))
         );
 
-        // 2. Хешируем пароль администратора
         userAdmin.setPassword(bCryptPasswordEncoder.encode(userAdmin.getPassword()));
-
-        // 3. Сохраняем пользователя через USER_REPOSITORY (а не roleRepository!)
         userRepository.save(userAdmin);
     }
 
-
-    // Единый переиспользуемый маппер
     private UserMsg mapToMsg(User u) {
         return UserMsg.newBuilder()
                 .setId(u.getId())
