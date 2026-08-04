@@ -1,5 +1,6 @@
 package com.app.service.rest.usersServer.controller;
 
+import com.app.grpc.UserMsg;
 import com.app.service.rest.usersServer.configuration.JwtUtils;
 import com.app.service.rest.usersServer.dto.RegisterRequest;
 import com.app.service.rest.usersServer.model.User;
@@ -52,11 +53,11 @@ public class UsersController {
         String username = request.get("username");
         String password = request.get("password");
 
-        User user = usersService.findUserByUserName(username);
+        UserMsg userMsg = usersService.findUserByUserNameProtobuf(username);
 
-        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-            String token = jwtUtils.generateToken(user.getUsername(), user.getId());
-            return ResponseEntity.ok(Map.of("token", token, "userId", user.getId()));
+        if (userMsg != null && passwordEncoder.matches(password, userMsg.getPassword())) {
+            String token = jwtUtils.generateToken(userMsg.getUsername(), userMsg.getId());
+            return ResponseEntity.ok(Map.of("token", token, "userId", userMsg.getId()));
         }
         return ResponseEntity.status(401).body("Invalid username or password");
     }

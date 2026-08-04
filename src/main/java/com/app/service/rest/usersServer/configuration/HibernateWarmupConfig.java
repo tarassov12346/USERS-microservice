@@ -22,12 +22,10 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
         log.info("🔥 [Warmup Config] КРИТИЧЕСКИЙ СИНХРОННЫЙ ПРОГРЕВ ОРМ НА ПОТОКЕ ОС: [{}]",
                 Thread.currentThread().getName());
         try {
-            // 1. Прогреваем планы списков (JPA и Protobuf)
-            usersService.getAllUsers();
+            // 1. Прогреваем план списка (Protobuf)
             usersService.getAllUsersProtobuf();
 
-            // 2. Прогреваем планы профиля по имени
-            usersService.findUserByUserName("admin");
+            // 2. Прогреваем план профиля по имени (Protobuf)
             usersService.findUserByUserNameProtobuf("admin");
 
             // 3. Закрываем слепую зону поиска по ID

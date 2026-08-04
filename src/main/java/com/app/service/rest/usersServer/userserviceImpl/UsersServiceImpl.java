@@ -46,12 +46,6 @@ public class UsersServiceImpl implements UsersService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<User> getAllUsers() {
-        return (List<User>) usersListCache.get("allUsers", key -> userRepository.findAll());
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
     public List<UserMsg> getAllUsersProtobuf() {
         // 1. Быстрое чтение из RAM (Lock-Free)
         List<UserMsg> cached = (List<UserMsg>) usersListCache.getIfPresent("all_proto");
@@ -73,32 +67,26 @@ public class UsersServiceImpl implements UsersService {
     }
 
     @Override
-    public User findUserByUserName(String userName) {
-        // 1. Быстрое чтение из RAM (Lock-Free)
-        User user = (User) userDetailsCache.getIfPresent(userName);
-        if (user != null) {
-            return user;
-        }
-
-        // 2. Сетевой I/O выполняется СВОБОДНО, вне замков мапы кэша
-        log.info("💾 КЭШ МИСНУЛ (user_login): Идем в PostgreSQL через JOIN FETCH за {}", userName);
-        user = userRepository.findByUsernameWithRoles(userName);
-
-        // 3. Атомарная запись через CAS-операции (Lock-Free)
-        if (user != null) {
-            userDetailsCache.put(userName, user);
-        }
-        return user;
-    }
-
-    @Override
     public UserMsg findUserByUserNameProtobuf(String userName) {
-        return (UserMsg) userDetailsCache.get(userName + "_proto", key -> {
-            log.info("💾 КЭШ МИСНУЛ (user_proto): Идем в PostgreSQL за пользователем: {}", userName);
-            User user = userRepository.findByUsernameWithRoles(userName);
-            return user != null ? mapToMsg(user) : null;
-        });
+        // 1. Быстрое Lock-Free чтение из RAM
+        UserMsg cached = (UserMsg) userDetailsCache.getIfPresent(userName + "_proto");
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. Сетевой I/O выполняется СВОБОДНО, вне замков мапы кэша Caffeine
+        log.info("💾 КЭШ МИСНУЛ (user_proto): Идем в PostgreSQL за пользователем: {}", userName);
+        User user = userRepository.findByUsernameWithRoles(userName);
+        if (user == null) {
+            return null;
+        }
+
+        // 3. Мапим в Protobuf и делаем атомарную Lock-Free запись через CAS-операции
+        UserMsg msg = mapToMsg(user);
+        userDetailsCache.put(userName + "_proto", msg);
+        return msg;
     }
+
 
     @Override
     @Transactional
