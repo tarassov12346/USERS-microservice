@@ -35,6 +35,11 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
         } catch (Exception e) {
             log.warn("⚠️ [Warmup Config] Предупреждение при прогреве ORM: {}", e.getMessage());
         }
+        // Проверяем, передан ли специальный аргумент/свойство для режима прогрева
+        if (System.getProperty("warmup.mode") != null) {
+            System.out.println("Выполнен pre-boot прогрев, сохраняем кэш Leyden и выходим...");
+            System.exit(0);
+        }
     }
 
 }
