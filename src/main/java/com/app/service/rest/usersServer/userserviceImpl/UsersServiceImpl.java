@@ -147,42 +147,64 @@ public class UsersServiceImpl implements UsersService {
         return true;
     }
 
+    // =================================================================
+    // 🔥 ИСПРАВЛЕННАЯ РЕАЛИЗАЦИЯ МЕТОДОВ ПОДГОТОВКИ БД
+    // =================================================================
+
     @Override
     @Transactional
     public boolean isRolesDBEmpty() {
-        return roleRepository.count() == 0;
+        long count = roleRepository.count();
+        log.info("🔍 gRPC Проверка: Запрос количества ролей в PostgreSQL. Найдено: {}", count);
+        return count == 0;
     }
 
     @Override
     @Transactional
     public void prepareRolesDB() {
-        Roles rolesAdmin = new Roles();
-        rolesAdmin.setId(1L);
-        rolesAdmin.setName("ROLE_ADMIN");
-
-        Roles rolesUser = new Roles();
-        rolesUser.setId(2L);
-        rolesUser.setName("ROLE_USER");
-
-        roleRepository.save(rolesAdmin);
-        roleRepository.save(rolesUser);
+        if (roleRepository.count() == 0) {
+            log.info("🛠 Инициализация таблицы ролей базовыми значениями...");
+            Roles roleAdmin = new Roles();
+            roleAdmin.setId(1L);
+            roleAdmin.setName("ROLE_ADMIN");
+            Roles roleUser = new Roles();
+            roleUser.setId(2L);
+            roleUser.setName("ROLE_USER");
+            roleRepository.save(roleAdmin);
+            roleRepository.save(roleUser);
+            log.info("✅ Базовые роли (ROLE_ADMIN, ROLE_USER) успешно сохранены в БД");
+        }
     }
 
     @Override
     @Transactional
     public void prepareUserDB() {
-        User userAdmin = new User();
-        userAdmin.setId(1L);
-        userAdmin.setUsername("admin");
-        userAdmin.setPassword("sam");
-        userAdmin.setPasswordConfirm("sam");
+        if (userRepository.findByUsername("admin") == null) {
+            log.info("🛠 Создание стартовой учетной записи администратора...");
 
-        roleRepository.findById(1L).ifPresent(role ->
-                userAdmin.setRoles(Collections.singleton(role))
-        );
+            User userAdmin = new User();
+            // Позволяем JPA/PostgreSQL управлять ID, либо раскомментируйте строку ниже, если ID строго захардкожен:
+            // userAdmin.setId(1L);
+            userAdmin.setUsername("admin");
+            userAdmin.setPassword("sam");
+            userAdmin.setPasswordConfirm("sam"); // Для прохождения внутренней валидации, если она есть
 
-        userAdmin.setPassword(bCryptPasswordEncoder.encode(userAdmin.getPassword()));
-        userRepository.save(userAdmin);
+            // Привязываем ROLE_ADMIN (ID: 1L)
+            roleRepository.findById(1L).ifPresent(role ->
+                    userAdmin.setRoles(Collections.singleton(role))
+            );
+
+            // Безопасное неблокирующее шифрование пароля
+            userAdmin.setPassword(bCryptPasswordEncoder.encode(userAdmin.getPassword()));
+            userRepository.save(userAdmin);
+
+            // 🔥 Точечная Lock-Free инвалидация кэша, чтобы клиент сразу увидел изменения в RAM
+            usersListCache.invalidateAll();
+            userDetailsCache.invalidate("admin");
+            userDetailsCache.invalidate("admin_proto");
+
+            log.info("✅ Администратор 'admin' успешно создан. Кэш Caffeine сброшен.");
+        }
     }
 
     private UserMsg mapToMsg(User u) {
@@ -196,3 +218,4 @@ public class UsersServiceImpl implements UsersService {
                 .build();
     }
 }
+
