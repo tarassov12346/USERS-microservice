@@ -99,19 +99,20 @@ public class UserGrpcController extends UserServiceGrpc.UserServiceImplBase {
         responseObserver.onCompleted();
     }
 
+    // Внутри UserGrpcController (Микросервис)
     @Override
     public void prepareRolesDB(UserEmpty request, StreamObserver<ActionResponse> responseObserver) {
-        log.info("📡 gRPC: Подготовка БД Ролей");
-        usersService.prepareRolesDB();
-        responseObserver.onNext(ActionResponse.newBuilder().setSuccess(true).build());
-        responseObserver.onCompleted();
-    }
+        log.info("📡 gRPC: Запуск комплексной подготовки БД (Роли + Дефолтный Админ)");
+        try {
+            // Выполняются последовательно в одном потоке сервера.
+            // Вторая транзакция гарантированно увидит данные первой!
+            usersService.prepareRolesDB();
+            usersService.prepareUserDB();
 
-    @Override
-    public void prepareUserDB(UserEmpty request, StreamObserver<ActionResponse> responseObserver) {
-        log.info("📡 gRPC: Подготовка БД Пользователей");
-        usersService.prepareUserDB();
-        responseObserver.onNext(ActionResponse.newBuilder().setSuccess(true).build());
+            responseObserver.onNext(ActionResponse.newBuilder().setSuccess(true).build());
+        } catch (Exception e) {
+            responseObserver.onNext(ActionResponse.newBuilder().setSuccess(false).build());
+        }
         responseObserver.onCompleted();
     }
 
