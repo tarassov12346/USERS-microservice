@@ -164,17 +164,20 @@ public class UsersServiceImpl implements UsersService {
     public void prepareRolesDB() {
         if (roleRepository.count() == 0) {
             log.info("🛠 Инициализация таблицы ролей базовыми значениями...");
+
             Roles roleAdmin = new Roles();
-            roleAdmin.setId(1L);
-            roleAdmin.setName("ROLE_ADMIN");
+            roleAdmin.setName("ROLE_ADMIN"); // ID не трогаем, он равен 0 по умолчанию
+
             Roles roleUser = new Roles();
-            roleUser.setId(2L);
-            roleUser.setName("ROLE_USER");
-            roleRepository.save(roleAdmin);
-            roleRepository.save(roleUser);
+            roleUser.setName("ROLE_USER");   // ID не трогаем, он равен 0 по умолчанию
+
+            // Сохраняем пачкой и принудительно пушим в базу данных здесь и сейчас
+            roleRepository.saveAllAndFlush(java.util.List.of(roleAdmin, roleUser));
+
             log.info("✅ Базовые роли (ROLE_ADMIN, ROLE_USER) успешно сохранены в БД");
         }
     }
+
 
     @Override
     @Transactional
