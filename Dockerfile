@@ -24,22 +24,36 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Копируем собранный JAR-файл из этапа сборки (под root правами для прогрева)
+COPY --from=builder /app/target/USERS-microservice-0.0.1-SNAPSHOT.jar app.jar
+
+# 🔥 ШАГ ПРОГРЕВА В ОБЛАКЕ:
+# Запускаем приложение в Linux-среде с вашим флагом -Dwarmup.mode=true.
+# Сервер сварит совместимый с Linux бинарный слепок класса application.jsa и сам выйдет (exit 0).
+RUN java -Dwarmup.mode=true \
+         -XX:ArchiveClassesAtExit=application.jsa \
+         -jar app.jar \
+         --spring.config.name=users-server || true
+
 # Создаем безопасного не-root пользователя для контура авторизации
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
-# Копируем собранный JAR-файл из этапа сборки
-COPY --from=builder /app/target/USERS-microservice-0.0.1-SNAPSHOT.jar app.jar
+# Передаем права на JAR и свежеиспеченный Linux-совместимый JSA-слепок нашему пользователю
+RUN chown -R spring:spring /app
+
+# Переключаемся на безопасного пользователя
+USER spring:spring
 
 # ОТКРЫВАЕМ ТОЧНЫЕ ПОРТЫ ИЗ PROPERTIES:
 # 4444 - HTTP REST / Web-интерфейс Thymeleaf
 # 6567 - Выделенный внутренний gRPC-сервер авторизации
 EXPOSE 4444 6567
 
-# Точка входа с поддержкой лимитов Docker, ZGC для Loom и флагом трассировки пиннинга
+# Точка входа: подключаем наш нативный, испеченный в Linux-контейнере AppCDS-архив
 ENTRYPOINT ["java", \
             "-XX:+UseContainerSupport", \
             "-XX:+UseZGC", \
+            "-XX:SharedArchiveFile=application.jsa", \
             "-Djdk.tracePinnedThreads=short", \
             "-jar", "app.jar", \
             "--spring.config.name=users-server"]

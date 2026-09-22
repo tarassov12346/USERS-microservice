@@ -134,3 +134,23 @@
 1. Перейти в папку `USERS-microservice`.
 2. Запустить проект стандартной командой Maven сборщика. При первом старте плагин `protobuf-maven-plugin` автоматически сгенерирует Java-классы на основе `.proto` файла, а плагин `maven-antrun-plugin` перепишет сгенерированные аннотации на современный стандарт `jakarta.annotation`.
 3. **Важно для диагностики Loom:** При запуске JAR-файла рекомендуется передавать JVM-аргумент `-Djdk.tracePinnedThreads=short`. Это позволит контролировать отсутствие Thread Pinning (блокировки несущих ОС-потоков) в критических секциях Hibernate, Spring Security и драйвера СУБД при работе с виртуальными потоками под высокой нагрузкой.
+
+# 🐳 Контейнеризация и CI/CD Автоматизация
+
+Проект полностью автоматизирован и интегрирован с облачной инфраструктурой:
+
+* **Автосборка (GitHub Actions):** При каждом `git push` в ветку `main`/`master` автоматически запускается конвейер GitHub Actions. Робот собирает JAR-файл (JDK 21), упаковывает его в легковесный Docker-образ и отправляет в Docker Hub.
+* **Репозиторий образов:** Свежие версии всегда доступны на https://hub.docker.com/repositories/tarassov12346.
+* **Сетевой режим (Host Network):** Для исключения конфликтов маршрутизации в облачных средах разработки (GitHub Codespaces) контейнер запускается напрямую в хост-сети машины (`--network host`), что минимизирует накладные расходы на CPU и ОЗУ.
+
+### 🚀 Быстрый запуск в Docker (Хост-режим)
+Если необходимо запустить данный микросервис отдельно из готового облачного образа:
+```bash
+docker run -d \
+  --name users-service \
+  --network host \
+  -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://localhost:1111/eureka/ \
+  -e EUREKA_INSTANCE_PREFER_IP_ADDRESS=true \
+  -e JAVA_TOOL_OPTIONS="-Xmx256m" \
+  tarassov12346/users-service:latest
+```
