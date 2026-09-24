@@ -24,14 +24,11 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
         try {
             // 1. Прогреваем план списка (Protobuf)
             usersService.getAllUsersProtobuf();
-
             // 2. Прогреваем план профиля по имени (Protobuf)
             usersService.findUserByUserNameProtobuf("admin");
-
             // 3. Закрываем слепую зону поиска по ID
             usersService.findUserByIdProtobuf(1L);
-
-            log.info("🚀 [Warmup Config] Синхронный прогрев завершен строго на потоке [main]. Сетевые порты gRPC/HTTP теперь могут безопасно открываться.");
+            log.info("🎯 [Warmup Config] [PROD-CDN v2] Синхронный прогрев завершен строго на потоке [main]. Сетевые порты gRPC/HTTP");
         } catch (Exception e) {
             log.warn("⚠️ [Warmup Config] Предупреждение при прогреве ORM: {}", e.getMessage());
         }
@@ -41,5 +38,4 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
             System.exit(0);
         }
     }
-
 }
