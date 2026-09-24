@@ -30,3 +30,23 @@ jobs:
           context: .
           push: true
           tags: tarassov12346/users-service:latest
+      # 🔥 НА ТИВНЫЙ АВТОДЕПЛОЙ В КОДС ПЕЙС ЧЕРЕЗ GITHUB CLI
+      - name: Trigger Redeploy in GitHub Codespaces
+        run: |
+          # Устанавливаем официальное расширение для работы с Codespaces через SSH
+          gh extension install github/gh-copilot --force || true
+          
+          # Находим имя вашего активного Codespace для репозитория полигона PWD-POLYGONE
+          CODESPACE_NAME=$(gh cs list --json name,repository --jq '.[] | select(.repository == "tarassov12346/PWD-POLYGONE") | .name' | head -n 1)
+          
+          if [ -z "$CODESPACE_NAME" ]; then
+            echo "⚠️ Активный Codespace для PWD-POLYGONE не найден. Пропускаем деплой."
+            exit 0
+          fi
+          
+          echo "🚀 Найден активный Codespace: $CODESPACE_NAME. Отправляем команду обновления..."
+          
+          # Подключаемся по защищенному внутреннему каналу прямо в виртуалку и обновляем контейнер пользователей
+          gh cs ssh -c "$CODESPACE_NAME" -- "cd /workspaces/PWD-POLYGONE && docker compose pull users-service && docker compose up -d users-service"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
