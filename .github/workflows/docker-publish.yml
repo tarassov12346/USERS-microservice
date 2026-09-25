@@ -37,7 +37,7 @@ jobs:
           CODESPACE_NAME=$(gh cs list --json name,repository --jq '.[] | select(.repository == "tarassov12346/PWD-POLYGONE") | .name' | head -n 1)
           
           if [ -z "$CODESPACE_NAME" ]; then
-            echo "⚠️ Активный Codespace для PWD-POLYGONE не найден. Пропускаем деплой."
+            echo "⚠️  Активный Codespace для PWD-POLYGONE не найден. Пропускаем деплой."
             exit 0
           fi
           
@@ -46,4 +46,5 @@ jobs:
           # Используем флаг --dir для принудительного выполнения команды прямо в папке полигона
           gh cs ssh -c "$CODESPACE_NAME" --dir /workspaces/PWD-POLYGONE -- "docker compose pull users-service && docker compose up -d users-service"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MY_CODESPACES_PAT }}  # 👈 Заменили стандартный токен на кастомный PAT
+
