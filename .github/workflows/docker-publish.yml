@@ -44,7 +44,7 @@ jobs:
           echo "🚀 Найден активный Codespace: $CODESPACE_NAME. Отправляем команду обновления..."
           
           # Используем флаг --dir для принудительного выполнения команды прямо в папке полигона
-          gh cs ssh -c "$CODESPACE_NAME" --dir /workspaces/PWD-POLYGONE -- "docker compose pull users-service && docker compose up -d users-service"
+          gh cs ssh -c "$CODESPACE_NAME" -- "cd /workspaces/PWD-POLYGONE && docker compose pull users-service && docker compose up -d users-service"
         env:
           GH_TOKEN: ${{ secrets.MY_CODESPACES_PAT }}  # 👈 Заменили стандартный токен на кастомный PAT
 
