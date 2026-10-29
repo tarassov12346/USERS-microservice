@@ -186,7 +186,7 @@ public class UsersServiceImpl implements UsersService {
             log.info("🛠 Создание стартовой учетной записи администратора...");
 
             User userAdmin = new User();
-            // Позволяем JPA/PostgreSQL управлять ID, либо раскомментируйте строку ниже, если ID строго захардкожен:
+            // Позволяем JPA/PostgreSQL управлять ID, либо можно раскомментировать строку ниже, если захотим ID строго захардкорить:
             // userAdmin.setId(1L);
             userAdmin.setUsername("admin");
             userAdmin.setPassword("sam");
