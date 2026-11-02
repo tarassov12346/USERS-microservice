@@ -22,6 +22,7 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
         log.info("🔥 [Warmup Config] КРИТИЧЕСКИЙ СИНХРОННЫЙ ПРОГРЕВ ОРМ НА ПОТОКЕ ОС: [{}]",
                 Thread.currentThread().getName());
         try {
+            //  Кэш JPQL-планов сохраняет уже скомпилированный результат (готовый SQL), чтобы при повторном вызове не выполнять трансляцию заново.
             // 1. Прогреваем план списка (Protobuf)
             usersService.getAllUsersProtobuf();
             // 2. Прогреваем план профиля по имени (Protobuf)
