@@ -9,7 +9,7 @@ public record RegisterRequest(@NotBlank(message = "Username is mandatory")
                               String username,
 
                               @NotBlank(message = "Password is mandatory")
-                              @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*\\d).+$",
+                              @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*\\d).+$",//чтобы в пароле была минимум одна буква ((?=.*[a-zA-Z])) и минимум одна цифра ((?=.*\\d))
                                       message = "Password must contain letters and digits")
                               String password,
 

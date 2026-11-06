@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     // Старый метод оставляем для авторизации (там роли сразу не нужны)
@@ -30,5 +31,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query(value = "DELETE FROM t_user WHERE id = :userId", nativeQuery = true)
     int deleteUserByIdNative(@Param("userId") Long userId);
+
+    // Новый метод: оптимизированный поиск по ID для gRPC
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id = :id")
+    Optional<User> findByIdWithRoles(@Param("id") Long id);
+
 
 }

@@ -27,7 +27,7 @@ public class HibernateWarmupConfig implements SmartInitializingSingleton {
             usersService.getAllUsersProtobuf();
             // 2. Прогреваем план профиля по имени (Protobuf)
             usersService.findUserByUserNameProtobuf("admin");
-            // 3. Закрываем слепую зону поиска по ID
+            // 3. Прогреваем план поиска по ID
             usersService.findUserByIdProtobuf(1L);
             log.info("🎯 [Warmup Config] [PROD-CDN v3.0] Синхронный прогрев завершен строго на потоке [main]. Сетевые порты gRPC/HTTP");
         } catch (Exception e) {

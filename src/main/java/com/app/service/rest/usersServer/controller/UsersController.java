@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Map;
-
+//Сам класс помечен как @Controller а не @RestController —
+// это позволяет методу @GetMapping("/login") возвращать HTML-страницу а не строку
+//А методы регистрации и логина (@PostMapping) помечены как @ResponseBody —
+// это заставляет их возвращать JSON-данные а не HTML-шаблон
 @Controller// Поменял на @Controller, чтобы работали переходы на HTML страницы
 @RequiredArgsConstructor // Генерирует конструктор для всех final-полей
 public class UsersController {
@@ -37,6 +40,8 @@ public class UsersController {
         return "registration";
     }
 
+    //@Valid запускает валидацию полей (например, если в рекорде стоят аннотации @NotBlank или @Size на пароле/логине).
+    //@RequestBody автоматически превращает пришедший от фронтенда JSON в Java-объект - рекорд RegisterRequest
     @PostMapping("/api/users/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         if (!request.password().equals(request.passwordConfirm())) {
@@ -54,8 +59,10 @@ public class UsersController {
         String password = request.get("password");
 
         UserMsg userMsg = usersService.findUserByUserNameProtobuf(username);
-
+    //Бин passwordEncoder заглядывает внутрь хэша userMsg.getPassword(), сам вытаскивает из него 22 символа соли, подмешивает её к чистому password (который прислал юзер в JSON) и сравнивает результаты
         if (userMsg != null && passwordEncoder.matches(password, userMsg.getPassword())) {
+    //Если пароль подошел, в дело вступает тот самый SecretKey key из @PostConstruct в JWTUtils в конфиге.
+    // Метод generateToken берет ID и имя пользователя, подписывает их вашим секретным ключом (клеймом) и создает JWT-токен, который возвращается клиенту.
             String token = jwtUtils.generateToken(userMsg.getUsername(), userMsg.getId());
             return ResponseEntity.ok(Map.of("token", token, "userId", userMsg.getId()));
         }

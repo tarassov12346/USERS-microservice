@@ -156,7 +156,7 @@ public class UsersServiceImpl implements UsersService {
 
         log.info("💾 КЭШ МИСНУЛ (user_id_proto): Идем в PostgreSQL за ID: {}", userId);
         // 2. Ищем в БД по ID с загрузкой ролей (кастомный метод репозитория или findById)
-        User user = userRepository.findById(userId).orElse(null);
+        User user = userRepository.findByIdWithRoles(userId).orElse(null);
         if (user == null) {
             return null;
         }

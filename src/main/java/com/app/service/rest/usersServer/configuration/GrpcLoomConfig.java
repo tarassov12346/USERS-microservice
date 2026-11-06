@@ -9,6 +9,10 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class GrpcLoomConfig {
+    /**
+     * Настройка Loom для gRPC. Активируется только при spring.threads.virtual.enabled=true в проперти-файле.
+     * Позволяет гибко отключать виртуальные потоки или безопасно запускать код на старых версиях Java.
+     */
     @Bean
     @ConditionalOnProperty(name = "spring.threads.virtual.enabled", havingValue = "true")
     public GrpcServerConfigurer grpcVirtualThreadsConfigurer() {

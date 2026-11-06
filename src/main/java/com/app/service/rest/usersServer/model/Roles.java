@@ -12,8 +12,8 @@ import jakarta.persistence.*; // ИМПОРТ ИЗМЕНЕН
 @Table(name = "t_role")
 public class Roles {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //Делегирование базе данных.База данных сама берет встроенный счетчик, увеличивает его на 1 и присваивает новой строке
+    private Long id;
 
     private String name;
 }

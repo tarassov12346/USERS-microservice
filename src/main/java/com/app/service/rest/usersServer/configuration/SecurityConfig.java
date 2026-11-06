@@ -13,7 +13,8 @@ import java.security.SecureRandom;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    //Этот бин автоматически делает две вещи: солит пароль и хэширует его перед отправкой в базу данных.
+    //String hashedPassword = passwordEncoder.encode("мой_пароль") - Соль прячется прямо внутри итоговой строки хэша, которая сохраняется в базу данных.
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         try {
